@@ -388,9 +388,9 @@ where
 
 impl<I> Iterator for IterState<I>
 where
-    I: Iterator<Item = i128>,
+    I: Iterator<Item = i128>, // the values returned by iterator
 {
-    type Item = bool;
+    type Item = bool; // the value returned
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iterator.next() {
