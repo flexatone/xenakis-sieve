@@ -53,11 +53,12 @@ fn test_sieve_new_c() {
     assert_eq!(s3.contains(10), false);
     assert_eq!(s3.contains(30), true);
 
-
     let s4 = (Sieve::new("5@0") | Sieve::new("4@2")) & !Sieve::new("30@10");
     assert_eq!(s4.to_string(), "Sieve{5@0|4@2&!(30@10)}");
-    assert_eq!(s3.iter_value(0..100).collect::<Vec<_>>(), s4.iter_value(0..100).collect::<Vec<_>>());
-
+    assert_eq!(
+        s3.iter_value(0..100).collect::<Vec<_>>(),
+        s4.iter_value(0..100).collect::<Vec<_>>()
+    );
 }
 
 //------------------------------------------------------------------------------
