@@ -20,7 +20,7 @@
 
 An implementation of the Xenakis Sieve, providing a Sieve from a string expression that filters integer sequences into iterators of integers, Boolean states, or interval widths. Sieves are built from Residuals, defined as a modulus (M) and a shift (S), notated `M@S`. Sieve string expressions, and Sieve structs, support complementation, intersection, symmetric difference, and union operations on Residuals with operators `!`, `&`, `^` and `|`, respectively.
 
-The Xenakis Sieve is tool for generating discrete interval patterns. Such patterns have boundless applications in creative domains: the Xenakis Sieve can be used to generate scales or multi-octave pitch sequences, rhythms and polyrhythms, and used to control countless other aspects of pictorial or architectural design.
+The Xenakis Sieve is a tool for generating discrete interval patterns. Such patterns have boundless applications in creative domains: the Xenakis Sieve can be used to generate scales or multi-octave pitch sequences, rhythms and polyrhythms, and used to control countless other aspects of pictorial or architectural design.
 
 This Rust implementation follows the Python implementation in Ariza (2005), with significant performance and interface enhancements: https://direct.mit.edu/comj/article/29/2/40/93957
 
@@ -89,6 +89,13 @@ assert_eq!(s3.contains(10), false);
 assert_eq!(s3.contains(30), true);
 ```
 
+The `xensieve.Sieve` instance supports the same operators permitted in Sieve expressions, such that instances can be combined to build complex Sieves.
+
+```rust
+let s4 = (Sieve::new("5@0") | Sieve::new("4@2")) & !Sieve::new("30@10");
+assert_eq!(s4.to_string(), "Sieve{5@0|4@2&!(30@10)}");
+assert_eq!(s3.iter_value(0..100).collect::<Vec<_>>(), s4.iter_value(0..100).collect::<Vec<_>>());
+```
 
 # What is New in `xensieve`
 
