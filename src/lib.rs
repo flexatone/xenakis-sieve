@@ -4,6 +4,7 @@ use std::ops::BitAnd;
 use std::ops::BitOr;
 use std::ops::BitXor;
 use std::ops::Not;
+use std::rc::Rc;
 
 mod parser;
 mod util;
@@ -88,10 +89,10 @@ impl Ord for Residual {
 #[derive(Clone, Debug)]
 pub(crate) enum SieveNode {
     Unit(Residual),
-    Intersection(Box<SieveNode>, Box<SieveNode>),
-    Union(Box<SieveNode>, Box<SieveNode>),
-    SymmetricDifference(Box<SieveNode>, Box<SieveNode>),
-    Inversion(Box<SieveNode>),
+    Intersection(RC<SieveNode>, RC<SieveNode>),
+    Union(RC<SieveNode>, Rc<SieveNode>),
+    SymmetricDifference(RC<SieveNode>, RC<SieveNode>),
+    Inversion(RC<SieveNode>),
 }
 
 impl fmt::Display for SieveNode {
@@ -141,7 +142,7 @@ impl SieveNode {
 /// The representation of a Xenakis Sieve, constructed from a string notation of one or more Residual classes combined with logical operators. This Rust implementation follows the Python implementation in Ariza (2005), with significant performance and interface enhancements: https://direct.mit.edu/comj/article/29/2/40/93957
 #[derive(Clone, Debug)]
 pub struct Sieve {
-    root: SieveNode,
+    root: Rc<SieveNode>,
 }
 
 impl BitAnd for Sieve {
@@ -149,7 +150,7 @@ impl BitAnd for Sieve {
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Sieve {
-            root: SieveNode::Intersection(Box::new(self.root), Box::new(rhs.root)),
+            root: SieveNode::Intersection(Rc::clone(&self.root), Rc::clone(&rhs.root)),
         }
     }
 }
@@ -159,7 +160,7 @@ impl BitAnd for &Sieve {
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Sieve {
-            root: SieveNode::Intersection(Box::new(self.root.clone()), Box::new(rhs.root.clone())),
+            root: SieveNode::Intersection(Rc::clone(&self.root), Rc::clone(&rhs.root)),
         }
     }
 }
@@ -169,7 +170,7 @@ impl BitOr for Sieve {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         Sieve {
-            root: SieveNode::Union(Box::new(self.root), Box::new(rhs.root)),
+            root: SieveNode::Union(Rc::clone(&self.root), Rc::clone(&rhs.root)),
         }
     }
 }
@@ -179,7 +180,7 @@ impl BitOr for &Sieve {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         Sieve {
-            root: SieveNode::Union(Box::new(self.root.clone()), Box::new(rhs.root.clone())),
+            root: SieveNode::Union(Rc::clone(&self.root), Rc::clone(&rhs.root)),
         }
     }
 }
@@ -189,7 +190,7 @@ impl BitXor for Sieve {
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         Sieve {
-            root: SieveNode::SymmetricDifference(Box::new(self.root), Box::new(rhs.root)),
+            root: SieveNode::SymmetricDifference(Rc::clone(self.root), Rc::clone(rhs.root)),
         }
     }
 }
@@ -200,8 +201,8 @@ impl BitXor for &Sieve {
     fn bitxor(self, rhs: Self) -> Self::Output {
         Sieve {
             root: SieveNode::SymmetricDifference(
-                Box::new(self.root.clone()),
-                Box::new(rhs.root.clone()),
+                Rc::clone(&self.root),
+                Rc::clone(&rhs.root),
             ),
         }
     }
@@ -212,7 +213,7 @@ impl Not for Sieve {
 
     fn not(self) -> Self::Output {
         Sieve {
-            root: SieveNode::Inversion(Box::new(self.root)),
+            root: SieveNode::Inversion(Rc::clone(&self.root)),
         }
     }
 }
@@ -222,7 +223,7 @@ impl Not for &Sieve {
 
     fn not(self) -> Self::Output {
         Sieve {
-            root: SieveNode::Inversion(Box::new(self.root.clone())),
+            root: SieveNode::Inversion(Rc::clone(&self.root)),
         }
     }
 }
@@ -301,7 +302,7 @@ impl Sieve {
         // NOTE: do not want to clone self here...
         IterValue {
             iterator,
-            sieve_node: self.root.clone(),
+            sieve_node: Rc::new(self.root),
         }
     }
 
@@ -351,7 +352,7 @@ where
     I: Iterator<Item = i128>,
 {
     iterator: I,
-    sieve_node: SieveNode,
+    sieve_node: Rc<SieveNode>,
 }
 
 impl<I> Iterator for IterValue<I>
@@ -662,7 +663,7 @@ mod tests {
     fn test_sieve_contains_b() {
         let r1 = Residual::new(3, 0);
         let r2 = Residual::new(3, 1);
-        let s1 = SieveNode::Union(Box::new(SieveNode::Unit(r1)), Box::new(SieveNode::Unit(r2)));
+        let s1 = SieveNode::Union(Rc::new(SieveNode::Unit(r1)), Rc::new(SieveNode::Unit(r2)));
 
         assert_eq!(s1.contains(-2), true);
         assert_eq!(s1.contains(-1), false);
