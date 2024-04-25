@@ -139,23 +139,26 @@ impl<T: util::NumericElement> SieveNode<T> {
     }
 }
 
-// //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-// /// The representation of a Xenakis Sieve, constructed from a string notation of one or more Residual classes combined with logical operators. This Rust implementation follows the Python implementation in Ariza (2005), with significant performance and interface enhancements: https://direct.mit.edu/comj/article/29/2/40/93957
-// #[derive(Clone, Debug)]
-// pub struct Sieve {
-//     root: Rc<SieveNode>,
-// }
+/// The representation of a Xenakis Sieve, constructed from a string notation of one or more Residual classes combined with logical operators. This Rust implementation follows the Python implementation in Ariza (2005), with significant performance and interface enhancements: https://direct.mit.edu/comj/article/29/2/40/93957
+#[derive(Clone, Debug)]
+pub struct Sieve<T: util::NumericElement> {
+    root: Rc<SieveNode<T>>,
+}
 
-// impl BitAnd for Sieve {
-//     type Output = Sieve;
+impl<T: util::NumericElement> BitAnd for Sieve<T> {
+    type Output = Sieve<T>;
 
-//     fn bitand(self, rhs: Self) -> Self::Output {
-//         Sieve {
-//             root: SieveNode::Intersection(Rc::clone(&self.root), Rc::clone(&rhs.root)),
-//         }
-//     }
-// }
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Sieve {
+            root: Rc::new(SieveNode::Intersection(
+                Rc::clone(&self.root),
+                Rc::clone(&rhs.root),
+            )),
+        }
+    }
+}
 
 // impl BitAnd for &Sieve {
 //     type Output = Sieve;
@@ -230,11 +233,11 @@ impl<T: util::NumericElement> SieveNode<T> {
 //     }
 // }
 
-// impl fmt::Display for Sieve {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "Sieve{{{}}}", self.root)
-//     }
-// }
+impl<T: util::NumericElement> fmt::Display for Sieve<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Sieve{{{}}}", self.root)
+    }
+}
 
 // impl Sieve {
 //     /// Construct a Xenakis Sieve from a string representation.
@@ -641,52 +644,70 @@ mod tests {
     fn test_sieve_node_contains_b() {
         let r1 = Residual::new(3, 0);
         let r2 = Residual::new(3, 1);
-        let s1 = SieveNode::Union(Rc::new(SieveNode::Unit(r1)), Rc::new(SieveNode::Unit(r2)));
+        let sn = SieveNode::Union(Rc::new(SieveNode::Unit(r1)), Rc::new(SieveNode::Unit(r2)));
 
-        assert_eq!(s1.contains(-2), true);
-        assert_eq!(s1.contains(-1), false);
-        assert_eq!(s1.contains(0), true);
-        assert_eq!(s1.contains(1), true);
-        assert_eq!(s1.contains(2), false);
-        assert_eq!(s1.contains(3), true);
-        assert_eq!(s1.contains(4), true);
+        assert_eq!(sn.contains(-2), true);
+        assert_eq!(sn.contains(-1), false);
+        assert_eq!(sn.contains(0), true);
+        assert_eq!(sn.contains(1), true);
+        assert_eq!(sn.contains(2), false);
+        assert_eq!(sn.contains(3), true);
+        assert_eq!(sn.contains(4), true);
     }
 
     #[test]
     fn test_sieve_node_contains_c() {
         let r1 = Residual::new(2, 0);
         let r2 = Residual::new(3, 0);
-        let s1 =
+        let sn1 =
             SieveNode::Intersection(Rc::new(SieveNode::Unit(r1)), Rc::new(SieveNode::Unit(r2)));
 
-        assert_eq!(s1.contains(0), true);
-        assert_eq!(s1.contains(1), false);
-        assert_eq!(s1.contains(3), false);
-        assert_eq!(s1.contains(6), true);
+        assert_eq!(sn1.contains(0), true);
+        assert_eq!(sn1.contains(1), false);
+        assert_eq!(sn1.contains(3), false);
+        assert_eq!(sn1.contains(6), true);
     }
 
     #[test]
     fn test_sieve_node_contains_d() {
         let r1 = Residual::new(2, 0);
         let r2 = Residual::new(3, 0);
-        let s1 = SieveNode::SymmetricDifference(
+        let sn1 = SieveNode::SymmetricDifference(
             Rc::new(SieveNode::Unit(r1)),
             Rc::new(SieveNode::Unit(r2)),
         );
 
-        assert_eq!(s1.contains(0), false);
-        assert_eq!(s1.contains(3), true);
-        assert_eq!(s1.contains(6), false);
+        assert_eq!(sn1.contains(0), false);
+        assert_eq!(sn1.contains(3), true);
+        assert_eq!(sn1.contains(6), false);
     }
 
     #[test]
     fn test_sieve_node_contains_e() {
         let r1 = Residual::new(3, 0);
-        let s1 = SieveNode::Inversion(Rc::new(SieveNode::Unit(r1)));
+        let sn1 = SieveNode::Inversion(Rc::new(SieveNode::Unit(r1)));
 
-        assert_eq!(s1.contains(0), false);
-        assert_eq!(s1.contains(1), true);
-        assert_eq!(s1.contains(2), true);
+        assert_eq!(sn1.contains(0), false);
+        assert_eq!(sn1.contains(1), true);
+        assert_eq!(sn1.contains(2), true);
+    }
+
+    //--------------------------------------------------------------------------
+
+    #[test]
+    fn test_sieve_bit_and_a() {
+        let r1 = Residual::new(3, 0);
+        let r2 = Residual::new(5, 0);
+        let s1 = Sieve {
+            root: Rc::new(SieveNode::Unit(r1)),
+        };
+        let s2 = Sieve {
+            root: Rc::new(SieveNode::Unit(r2)),
+        };
+
+        let s3 = s1 & s2;
+        assert_eq!(s3.to_string(), "Sieve{3@0&5@0}");
+
     }
 
     //--------------------------------------------------------------------------
