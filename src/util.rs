@@ -1,12 +1,130 @@
-/// Find the greatest common divisor.
-fn gcd<T>(mut n: T, mut m: T, zero: T) -> Result<T, &'static str>
-where
-    T: std::ops::Rem<Output = T> + std::cmp::Ord + Copy,
+pub trait AbsMax {
+    type Output;
+    fn abs(self) -> Self::Output;
+    const MAX: Self::Output;
+}
+
+impl AbsMax for i8 {
+    type Output = i8;
+    fn abs(self) -> Self::Output {
+        i8::abs(self)
+    }
+    const MAX: Self::Output = i8::MAX;
+}
+
+impl AbsMax for i16 {
+    type Output = i16;
+    fn abs(self) -> Self::Output {
+        i16::abs(self)
+    }
+    const MAX: Self::Output = i16::MAX;
+}
+
+impl AbsMax for i32 {
+    type Output = i32;
+    fn abs(self) -> Self::Output {
+        i32::abs(self)
+    }
+    const MAX: Self::Output = i32::MAX;
+}
+
+impl AbsMax for i64 {
+    type Output = i64;
+    fn abs(self) -> Self::Output {
+        i64::abs(self)
+    }
+    const MAX: Self::Output = i64::MAX;
+}
+
+impl AbsMax for i128 {
+    type Output = i128;
+    fn abs(self) -> Self::Output {
+        i128::abs(self)
+    }
+    const MAX: Self::Output = i128::MAX;
+}
+
+impl AbsMax for u8 {
+    type Output = u8;
+    fn abs(self) -> Self::Output {
+        u8::abs(self)
+    }
+    const MAX: Self::Output = u8::MAX;
+}
+
+impl AbsMax for u16 {
+    type Output = u16;
+    fn abs(self) -> Self::Output {
+        u16::abs(self)
+    }
+    const MAX: Self::Output = u16::MAX;
+}
+
+impl AbsMax for u32 {
+    type Output = u32;
+    fn abs(self) -> Self::Output {
+        u32::abs(self)
+    }
+    const MAX: Self::Output = u32::MAX;
+}
+
+impl AbsMax for u64 {
+    type Output = u64;
+    fn abs(self) -> Self::Output {
+        u64::abs(self)
+    }
+    const MAX: Self::Output = u64::MAX;
+}
+
+impl AbsMax for u128 {
+    type Output = u128;
+    fn abs(self) -> Self::Output {
+        u128::abs(self)
+    }
+    const MAX: Self::Output = u128::MAX;
+}
+
+pub(crate) trait NumericElement:
+    From<i8>
+    + std::ops::Rem<Output = Self>
+    + std::ops::Sub<Output = Self>
+    + std::ops::Add<Output = Self>
+    + std::ops::Div<Output = Self>
+    + std::cmp::Ord
+    + std::ops::Mul<Output = Self>
+    + std::fmt::Display
+    + std::ops::RemAssign
+    + std::ops::AddAssign
+    + Copy
+    + AbsMax<Output = Self>
 {
-    if n <= zero || m <= zero {
+}
+
+impl<T> NumericElement for T where
+    T: From<i8>
+        + std::ops::Rem<Output = Self>
+        + std::ops::Sub<Output = Self>
+        + std::ops::Add<Output = Self>
+        + std::ops::Div<Output = Self>
+        + std::cmp::Ord
+        + std::ops::Mul<Output = Self>
+        + std::fmt::Display
+        + std::ops::RemAssign
+        + std::ops::AddAssign
+        + Copy
+        + AbsMax<Output = Self>
+{
+}
+
+/// Find the greatest common divisor.
+fn gcd<T>(mut n: T, mut m: T) -> Result<T, &'static str>
+where
+    T: NumericElement,
+{
+    if n <= T::from(0) || m <= T::from(0) {
         return Err("zero or negative values not supported");
     }
-    while m != zero {
+    while m != T::from(0) {
         if m < n {
             std::mem::swap(&mut m, &mut n);
         }
@@ -16,46 +134,47 @@ where
 }
 
 /// This is a brute-force implementation of modular inverse. The Extended Euclidian Algorithm might be a better choice.
-fn meziriac(a: u64, b: u64) -> Result<u64, &'static str> {
-    let mut g: u64 = 1;
-    if b == 1 {
-        g = 1;
+fn meziriac<T>(a: T, b: T) -> Result<T, &'static str>
+where
+    T: NumericElement,
+{
+    let mut g = T::from(1);
+    if b == T::from(1) {
+        g = T::from(1);
     } else if a == b {
-        g = 0;
+        g = T::from(0);
     } else {
-        while g < u64::MAX {
-            if ((g * a) % b) == 1 {
+        while g < T::MAX {
+            if ((g * a) % b) == T::from(1) {
                 break;
             }
-            g += 1;
+            g += T::from(1);
         }
     }
     Ok(g)
 }
 
 /// Core implementation of intersection of two residual classes.
-pub(crate) fn intersection(
-    m1: u64,
-    m2: u64,
-    mut s1: u64,
-    mut s2: u64,
-) -> Result<(u64, u64), &'static str> {
-    if m1 == 0 || m2 == 0 {
+pub(crate) fn intersection<T>(m1: T, m2: T, mut s1: T, mut s2: T) -> Result<(T, T), &'static str>
+where
+    T: NumericElement,
+{
+    if m1 == T::from(0) || m2 == T::from(0) {
         // intersection of null and anything is null
-        return Ok((0, 0));
+        return Ok((T::from(0), T::from(0)));
     }
     // normalize shifts
     s1 %= m1;
     s2 %= m2;
 
     // use common divisor
-    let d = gcd(m1, m2, 0)?;
+    let d = gcd(m1, m2)?;
     let md1 = m1 / d;
     let md2 = m2 / d;
-    let span: u64 = (s2 as i128 - s1 as i128).abs().try_into().unwrap();
+    let span: T = (s2 - s1).abs();
 
-    if d != 1 && (span % d != 0) {
-        return Ok((0, 0)); // no intersection
+    if d != T::from(1) && (span % d != T::from(0)) {
+        return Ok((T::from(0), T::from(0))); // no intersection
     }
     // NOTE: though this case was specified, it seems impossible to replicate
     // if d != 1 && (span % d == 0) && (s1 != s2) && (md1 == md2) {
@@ -73,29 +192,29 @@ mod tests {
 
     #[test]
     fn test_gcd_a() {
-        assert_eq!(gcd(14, 15, 0).unwrap(), 1);
+        assert_eq!(gcd(14, 15).unwrap(), 1);
     }
 
     #[test]
     fn test_gcd_b() {
-        assert_eq!(gcd(12, 8, 0).unwrap(), 4);
+        assert_eq!(gcd(12, 8).unwrap(), 4);
     }
 
     #[test]
     fn test_gcd_c() {
         let a = 2 * 3 * 5 * 11 * 17;
         let b = 3 * 7 * 11 * 13 * 19;
-        assert_eq!(gcd(a, b, 0).unwrap(), 3 * 11);
+        assert_eq!(gcd(a, b).unwrap(), 3 * 11);
     }
 
     #[test]
     fn test_gcd_d() {
-        assert_eq!(gcd(12, 0, 0).is_err(), true);
+        assert_eq!(gcd(12, 0).is_err(), true);
     }
 
     #[test]
     fn test_gcd_e() {
-        assert_eq!(gcd(0, 3, 0).is_err(), true);
+        assert_eq!(gcd(0, 3).is_err(), true);
     }
 
     #[test]
